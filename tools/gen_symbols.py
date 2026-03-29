@@ -116,11 +116,18 @@ with open(os.path.join(DECOMP_PATH, 'tools', 'symbol_addrs.txt'), 'r') as f:
             if 0x80000000 <= addr < 0x81000000:
                 named_syms[addr] = m.group(1)
 
-# GLOBAL PASS 1: Collect all JAL targets across ALL segments
-global_jal_targets = set()
+# Identify static (always-loaded) segments — those without overlapping VRAM
+# Static segments: main, app_render, more_funcs (no exclusive_ram_id conflicts)
+# Overlay segments: everything else (share VRAM with other overlays)
+STATIC_SEGMENTS = {'main', 'app_render', 'more_funcs', 'app_level'}
+
+# PASS 1: Collect JAL targets PER segment (from its own ROM data)
+# Also collect JAL targets from static segments separately (they can apply to overlays)
+static_jal_targets = set()
 for seg in segments:
     rom_start_s = seg['rom_start']
     vram_base_s = seg['vram']
+    seg_jal_targets = set()
     for cr_start, cr_end in seg['code_ranges']:
         cr_end = min(cr_end, len(rom))
         for off in range(cr_start, cr_end - 4, 4):
@@ -130,9 +137,12 @@ for seg in segments:
                 target = (word & 0x03FFFFFF) << 2
                 target |= (vram_base_s & 0xF0000000)
                 if not in_rsp(target):
-                    global_jal_targets.add(target)
+                    seg_jal_targets.add(target)
+    seg['_jal_targets'] = seg_jal_targets
+    if seg['name'] in STATIC_SEGMENTS:
+        static_jal_targets.update(seg_jal_targets)
 
-# GLOBAL PASS 2: Build code VRAM sets per segment for JAL target validation
+# PASS 2: Build code VRAM sets per segment
 for seg in segments:
     rom_start_s = seg['rom_start']
     vram_base_s = seg['vram']
@@ -175,17 +185,22 @@ for seg in segments:
                 if not in_rsp(vram):
                     prologue_starts.add(vram)
 
-    # Phase 2: Add global JAL targets that land in this segment's code
+    # Phase 2: Add JAL targets that land in this segment's code
     func_starts = set(prologue_starts)
     code_vrams = seg['_code_vrams']
 
-    for target in global_jal_targets:
+    # Use ALL JAL targets (from any segment) but validate against this segment's ROM
+    # This handles cross-overlay calls (e.g., world -> app_level)
+    all_jal = set()
+    for s in segments:
+        all_jal.update(s.get('_jal_targets', set()))
+    applicable_targets = all_jal
+    for target in applicable_targets:
         if target in code_vrams and target not in func_starts:
-            # Verify it's not a jr $ra (would mean data, not code)
             t_rom = rom_start + (target - vram_base)
             if 0 <= t_rom < len(rom) - 4:
                 word = struct.unpack('>I', rom[t_rom:t_rom + 4])[0]
-                if word == 0x03E00008:  # jr $ra at function start = stub/nop, skip
+                if word == 0x00000000:  # NOP - not a real function
                     continue
             func_starts.add(target)
 
@@ -232,49 +247,68 @@ for seg in segments:
         if func_has_cop0(rom, rom_off, size):
             cop0_funcs.append(name)
 
-    # Post-process: merge functions that branch outside their boundaries
-    # Check each function for backward branches (to addresses before function start)
-    merged = True
-    while merged:
-        merged = False
-        new_functions = []
-        skip_next = False
-        for i, (name, vram, size) in enumerate(functions):
-            if skip_next:
-                skip_next = False
-                continue
+    # Post-process: fix functions that branch outside their boundaries.
+    # 1. Forward branches: extend function size
+    # 2. Backward branches: merge with previous function
+    # Do forward extension first (iterative), then backward merge (single pass).
+
+    # Iterative forward extension + backward merge (3 rounds)
+    for _round in range(3):
+
+      # Forward extension
+      for idx in range(len(functions)):
+        name, vram, size = functions[idx]
+        for _pass in range(5):
             rom_off = rom_start + (vram - vram_base)
-            branches_outside = False
-            for off in range(rom_off, min(rom_off + size, len(rom)) - 4, 4):
+            max_target = vram + size
+            for off in range(rom_off, min(rom_off + size, len(rom)), 4):
+                if off + 4 > len(rom):
+                    break
                 word = struct.unpack('>I', rom[off:off + 4])[0]
                 op = (word >> 26) & 0x3F
-                if op in (0x04, 0x05, 0x06, 0x07, 0x01):  # BEQ, BNE, BLEZ, BGTZ, REGIMM
+                if op in (0x04, 0x05, 0x06, 0x07, 0x01):
                     imm = word & 0xFFFF
                     if imm & 0x8000:
                         imm -= 0x10000
-                    branch_target = (off - rom_start + vram_base) + 4 + (imm << 2)
-                    if branch_target < vram or branch_target >= vram + size:
-                        branches_outside = True
+                    bt = (off - rom_start + vram_base) + 4 + (imm << 2)
+                    if bt + 4 > max_target:
+                        max_target = bt + 4
+            if max_target > vram + size:
+                size = max_target - vram
+            else:
+                break
+        functions[idx] = (name, vram, size)
+
+      # Backward merge: iteratively merge functions that branch before their start
+      for _bpass in range(10):
+        did_merge = False
+        new_functions = []
+        for i, (name, vram, size) in enumerate(functions):
+            rom_off = rom_start + (vram - vram_base)
+            branches_backward = False
+            for off in range(rom_off, min(rom_off + size, len(rom)), 4):
+                if off + 4 > len(rom):
+                    break
+                word = struct.unpack('>I', rom[off:off + 4])[0]
+                op = (word >> 26) & 0x3F
+                if op in (0x04, 0x05, 0x06, 0x07, 0x01):
+                    imm = word & 0xFFFF
+                    if imm & 0x8000:
+                        imm -= 0x10000
+                    bt = (off - rom_start + vram_base) + 4 + (imm << 2)
+                    if bt < vram:
+                        branches_backward = True
                         break
-            if branches_outside:
-                if branch_target < vram and len(new_functions) > 0:
-                    # Backward branch - merge with previous function
-                    prev_name, prev_vram, prev_size = new_functions[-1]
-                    new_size = vram + size - prev_vram
-                    new_functions[-1] = (prev_name, prev_vram, new_size)
-                    merged = True
-                elif branch_target >= vram + size and i + 1 < len(functions):
-                    # Forward branch past end - extend to include next function
-                    next_name, next_vram, next_size = functions[i + 1]
-                    new_size = next_vram + next_size - vram
-                    new_functions.append((name, vram, new_size))
-                    skip_next = True
-                    merged = True
-                else:
-                    new_functions.append((name, vram, size))
+            if branches_backward and len(new_functions) > 0:
+                prev_name, prev_vram, prev_size = new_functions[-1]
+                new_size = vram + size - prev_vram
+                new_functions[-1] = (prev_name, prev_vram, new_size)
+                did_merge = True
             else:
                 new_functions.append((name, vram, size))
         functions = new_functions
+        if not did_merge:
+            break
 
     if not functions:
         continue
