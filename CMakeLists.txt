@@ -4,6 +4,8 @@ project(PokemonSnapRecomp LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Options
 option(BUILD_PLAYING "Build the main game executable" ON)
@@ -55,41 +57,10 @@ set_target_properties(RecompiledFuncs PROPERTIES
 )
 
 # ============================================================
-# Patches library (output of N64Recomp on patches.elf)
+# Patches library - DISABLED until patches build infrastructure is set up
 # ============================================================
-
-# Custom target to build patches MIPS ELF
-add_custom_target(PatchesBuild
-    COMMAND make -C ${CMAKE_CURRENT_SOURCE_DIR}/patches
-    COMMENT "Building MIPS patches..."
-)
-
-# Custom command to run N64Recomp on patches
-add_custom_command(
-    OUTPUT
-        ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledPatches/patches.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledPatches/patches_bin.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledPatches/recomp_overlays.inl
-        ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledPatches/funcs.h
-    COMMAND $<TARGET_FILE:N64Recomp> ${CMAKE_CURRENT_SOURCE_DIR}/patches.toml
-    DEPENDS PatchesBuild
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Recompiling patches..."
-)
-
-add_library(PatchesLib STATIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledPatches/patches.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledPatches/patches_bin.c
-)
-target_include_directories(PatchesLib PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/N64ModernRuntime/librecomp/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
-)
-target_link_libraries(PatchesLib PRIVATE librecomp)
-set_target_properties(PatchesLib PROPERTIES
-    C_STANDARD 11
-    COMPILE_FLAGS "$<$<COMPILE_LANGUAGE:C>:-w>"
-)
+# TODO: Enable when MIPS cross-compilation toolchain is available
+# Patches require clang targeting MIPS + ld.lld
 
 # ============================================================
 # RSP recompiled audio microcode
@@ -127,12 +98,10 @@ if(BUILD_PLAYING)
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/rt64/include
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/RmlUi/Include
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/lunasvg/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledPatches
+        ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledFuncs
     )
 
-    # Link order matters: PatchesLib before RecompiledFuncs so patches override
     target_link_libraries(PokemonSnapRecomp PRIVATE
-        PatchesLib
         RecompiledFuncs
         SnapRSP
         librecomp
