@@ -13,7 +13,8 @@ option(BUILD_PLAYING "Build the main game executable" ON)
 # N64ModernRuntime (contains librecomp, ultramodern, and the N64Recomp tool)
 add_subdirectory(lib/N64ModernRuntime)
 
-# RT64 renderer
+# RT64 renderer (static link to avoid DLL export issues)
+set(RT64_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(lib/rt64)
 
 # RmlUi for menus
@@ -92,7 +93,7 @@ if(BUILD_PLAYING)
     )
 
     add_executable(PokemonSnapRecomp ${POKEMONSNAP_SOURCES})
-    target_compile_definitions(PokemonSnapRecomp PRIVATE SDL_MAIN_HANDLED)
+    target_compile_definitions(PokemonSnapRecomp PRIVATE SDL_MAIN_HANDLED NOMINMAX)
 
     target_include_directories(PokemonSnapRecomp PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -100,6 +101,11 @@ if(BUILD_PLAYING)
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/N64ModernRuntime/ultramodern/include
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/rt64/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/rt64/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/rt64/src/contrib/plume/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/rt64/src/contrib/hlslpp/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/rt64/src/contrib
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/rt64/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3/include
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/RmlUi/Include
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/lunasvg/include
         ${CMAKE_CURRENT_SOURCE_DIR}/RecompiledFuncs
