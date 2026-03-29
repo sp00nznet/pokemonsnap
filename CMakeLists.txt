@@ -15,7 +15,7 @@ add_subdirectory(lib/N64ModernRuntime)
 add_subdirectory(lib/rt64)
 
 # RmlUi for menus
-set(RMLUI_BACKEND "" CACHE STRING "" FORCE)
+set(RMLUI_BACKEND "native" CACHE STRING "" FORCE)
 set(RMLUI_LUA_BINDINGS OFF CACHE BOOL "" FORCE)
 set(RMLUI_SAMPLES OFF CACHE BOOL "" FORCE)
 set(RMLUI_FONT_ENGINE "none" CACHE STRING "" FORCE)
@@ -94,14 +94,14 @@ set_target_properties(PatchesLib PROPERTIES
 # ============================================================
 # RSP recompiled audio microcode
 # ============================================================
-add_library(RSPRecomp STATIC
+add_library(SnapRSP STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/rsp/aspMain.cpp
 )
-target_include_directories(RSPRecomp PRIVATE
+target_include_directories(SnapRSP PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/N64ModernRuntime/librecomp/include
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
 )
-target_link_libraries(RSPRecomp PRIVATE librecomp)
+target_link_libraries(SnapRSP PRIVATE librecomp)
 
 # ============================================================
 # Main executable
@@ -134,7 +134,7 @@ if(BUILD_PLAYING)
     target_link_libraries(PokemonSnapRecomp PRIVATE
         PatchesLib
         RecompiledFuncs
-        RSPRecomp
+        SnapRSP
         librecomp
         ultramodern
         rt64
