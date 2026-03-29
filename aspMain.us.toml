@@ -1,0 +1,21 @@
+# Pokemon Snap (US) - RSP Audio Microcode Recomp Configuration
+# aspMain microcode: ROM text at 0x3E580, data at 0x457A0
+
+text_offset = 0x3E580
+text_size = 0x0E20
+text_address = 0x04001080
+rom_file_path = "pokemonsnap.us.z64"
+output_file_path = "rsp/aspMain.cpp"
+output_function_name = "aspMain"
+
+extra_indirect_branch_targets = [
+    # These will need to be identified by analyzing the RSP microcode
+    # Common aspMain branch targets from other N64 games:
+    0x1118,
+    0x1120,
+    0x1248,
+    0x12B0,
+    0x1360,
+    0x1470,
+    0x14C0,
+]

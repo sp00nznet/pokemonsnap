@@ -1,0 +1,14 @@
+# Pokemon Snap (US) - N64Recomp Configuration
+# ROM: Pokemon Snap (U) [!].z64
+# SHA1: edc7c49cc568c045fe48be0d18011c30f393cbaf
+
+[input]
+entrypoint = 0x80000400
+rom_file_path = "pokemonsnap.us.z64"
+output_func_path = "RecompiledFuncs"
+symbols_file_path = "PokemonSnapSyms/dump.toml"
+
+[patches]
+stubs = []
+
+ignored = []

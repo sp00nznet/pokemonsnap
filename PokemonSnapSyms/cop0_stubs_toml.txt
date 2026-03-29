@@ -1,0 +1,13 @@
+stubs = [
+    "__osDisableInt",
+    "__osGetSR",
+    "__osProbeTLB",
+    "__osRestoreInt",
+    "__osSetCompare",
+    "__osSetSR",
+    "__osSetWatchLo",
+    "osGetCount",
+    "osMapTLBRdb",
+    "osSetIntMask",
+    "osUnmapTLBAll",
+]

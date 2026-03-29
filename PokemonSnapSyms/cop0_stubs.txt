@@ -1,0 +1,11 @@
+osSetIntMask
+__osSetSR
+__osGetSR
+__osProbeTLB
+osGetCount
+osUnmapTLBAll
+__osSetCompare
+__osDisableInt
+__osRestoreInt
+osMapTLBRdb
+__osSetWatchLo

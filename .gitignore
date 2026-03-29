@@ -1,0 +1,28 @@
+# Build output
+build/
+RecompiledFuncs/*.c
+RecompiledFuncs/*.cpp
+RecompiledPatches/
+rsp/aspMain.cpp
+
+# Patches build artifacts
+patches/*.o
+patches/*.elf
+patches/*.bin
+
+# ROM files (user must provide)
+*.z64
+*.n64
+*.v64
+
+# IDE
+.vs/
+.vscode/
+*.vcxproj.user
+CMakeSettings.json
+CMakeUserPresets.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

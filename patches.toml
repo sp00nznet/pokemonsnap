@@ -1,0 +1,13 @@
+# Pokemon Snap (US) - Patches Recomp Configuration
+
+[input]
+elf_path = "patches/patches.elf"
+output_func_path = "RecompiledPatches"
+single_file_output = true
+use_absolute_symbols = true
+func_reference_syms_file = "PokemonSnapSyms/dump.toml"
+data_reference_syms_files = [ "PokemonSnapSyms/data_dump.toml" ]
+output_binary_path = "patches/patches.bin"
+unpaired_lo16_warnings = false
+allow_exports = true
+strict_patch_mode = true
