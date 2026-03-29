@@ -88,9 +88,11 @@ if(BUILD_PLAYING)
         src/game/input.cpp
         src/game/config.cpp
         src/game/recomp_api.cpp
+        src/main/os_stubs.cpp
     )
 
-    add_executable(PokemonSnapRecomp WIN32 ${POKEMONSNAP_SOURCES})
+    add_executable(PokemonSnapRecomp ${POKEMONSNAP_SOURCES})
+    target_compile_definitions(PokemonSnapRecomp PRIVATE SDL_MAIN_HANDLED)
 
     target_include_directories(PokemonSnapRecomp PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
