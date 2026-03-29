@@ -4,7 +4,7 @@ Static recompilation of Pokemon Snap (N64) for PC using [N64Recomp](https://gith
 
 ## Status
 
-**Early development - not yet playable.**
+**Early development - builds successfully, not yet playable.**
 
 ### Recompilation Progress
 
@@ -19,13 +19,16 @@ Static recompilation of Pokemon Snap (N64) for PC using [N64Recomp](https://gith
 ### What Works
 - ROM binary scanning and function boundary detection
 - Symbol generation from decomp project (prologue + JAL target scanning)
-- Static recompilation of main game code, level code, and most overlays
+- Static recompilation: 5,797 functions, zero N64Recomp errors
+- RSP audio microcode recompiled (aspMain)
+- Full CMake build produces PokemonSnap.exe (4.2MB)
 - libultra OS functions auto-handled by N64Recomp built-in lists
+- Cross-function label fix tool for MSVC compilation
 
 ### Known Issues
-- Some overlay boundary mismatches (shared VRAM addresses cause function size conflicts)
-- RSP audio microcode not yet recompiled
-- No runtime/rendering integration yet
+- Not yet runnable (needs RT64 render context wired up)
+- Patches system needs MIPS cross-compiler (clang + ld.lld)
+- OS stub functions need proper implementations for full functionality
 
 ### Planned Enhancements
 - Photo export as PNG/JPEG (capture at native rendering resolution)
