@@ -4,7 +4,7 @@
  * Game-specific configuration (photo export settings, camera sensitivity, etc.)
  */
 
-#include "librecomp/recomp.h"
+#include "librecomp/game.hpp"
 
 // TODO: Implement game configuration
 // Settings to expose:

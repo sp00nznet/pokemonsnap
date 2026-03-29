@@ -235,11 +235,12 @@ for seg in segments:
         if size <= 0:
             continue
 
-        # Use named symbol if available, otherwise generate unique name with section prefix
-        if vram in named_syms:
-            name = named_syms[vram]
+        # Generate unique function name — always prefix overlay sections to avoid duplicates
+        base_name = named_syms.get(vram, 'func_%08X' % vram)
+        if seg['name'] in STATIC_SEGMENTS:
+            name = base_name
         else:
-            name = '%s_func_%08X' % (seg['name'], vram)
+            name = '%s_%s' % (seg['name'], base_name)
         functions.append((name, vram, size))
 
         # Check for cop0

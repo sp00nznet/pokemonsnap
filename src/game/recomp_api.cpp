@@ -5,7 +5,7 @@
  * These bridge between the recompiled game code and native C++ features.
  */
 
-#include "librecomp/recomp.h"
+#include "librecomp/game.hpp"
 
 // TODO: Implement recomp API functions for:
 //   - Photo export (capture RT64 framebuffer as PNG)

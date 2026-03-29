@@ -5,7 +5,7 @@
  * Special handling for the camera viewfinder (mouse/gyro aim).
  */
 
-#include "librecomp/recomp.h"
+#include "librecomp/game.hpp"
 
 // TODO: Implement input mapping
 // The camera viewfinder is the primary input - mouse/gyro control

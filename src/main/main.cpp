@@ -4,14 +4,10 @@
 
 #include "librecomp/game.hpp"
 #include "librecomp/overlays.hpp"
-#include "librecomp/recomp.h"
+#include "librecomp/sections.h"
+#include "librecomp/rsp.hpp"
 #include "ultramodern/ultramodern.hpp"
 #include "ultramodern/renderer_context.hpp"
-#include "ultramodern/rsp.hpp"
-#include "ultramodern/error_handling.hpp"
-#include "ultramodern/events.hpp"
-#include "ultramodern/input.hpp"
-#include "ultramodern/threads.hpp"
 
 #include "ovl_patches.hpp"
 #include "snap_config.h"
@@ -20,33 +16,27 @@
 extern "C" void recomp_entrypoint(uint8_t* rdram, recomp_context* ctx);
 gpr get_entrypoint_address();
 
-// RSP microcode (recompiled by RSPRecomp)
-extern "C" void aspMain(uint8_t* rdram, recomp_context* ctx);
+// RSP microcode
+extern RspUcodeFunc aspMain;
 
-// RSP callbacks
-void rsp_init() {
-    // No RSP init needed
-}
-
-bool rsp_run_task(RDRAM_ARG const OSTask* task) {
+// RSP callback: return the microcode function for a given task
+RspUcodeFunc* get_rsp_microcode(const OSTask* task) {
     if (task->t.type == M_AUDTASK) {
-        aspMain(rdram, nullptr);
-        return true;
+        return aspMain;
     }
-    // GFX tasks are handled by RT64 directly
-    return false;
-}
-
-// RT64 render context creation
-std::unique_ptr<ultramodern::renderer::RendererContext> create_render_context(
-    uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode) {
-    // TODO: Create and return RT64 render context
     return nullptr;
 }
 
-// Stub callbacks for initial bootstrap
-void gfx_create_window(ultramodern::renderer::WindowHandle) {}
-ultramodern::renderer::WindowHandle gfx_get_window_handle() { return {}; }
+// GFX callbacks
+void* create_gfx() { return nullptr; }
+ultramodern::renderer::WindowHandle create_window(void*) { return {}; }
+void update_gfx(void*) {}
+
+// Render context
+std::unique_ptr<ultramodern::renderer::RendererContext> create_render_context(
+    uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode) {
+    return nullptr; // TODO: RT64 integration
+}
 
 int main(int argc, char* argv[]) {
     // Register the game
@@ -68,8 +58,7 @@ int main(int argc, char* argv[]) {
 
     // Set up callbacks
     recomp::rsp::callbacks_t rsp_callbacks{
-        .init = rsp_init,
-        .run_task = rsp_run_task,
+        .get_rsp_microcode = get_rsp_microcode,
     };
 
     ultramodern::renderer::callbacks_t renderer_callbacks{
@@ -77,11 +66,15 @@ int main(int argc, char* argv[]) {
     };
 
     ultramodern::audio_callbacks_t audio_callbacks{};
+
     ultramodern::input::callbacks_t input_callbacks{};
+
     ultramodern::gfx_callbacks_t gfx_callbacks{
-        .create_window = gfx_create_window,
-        .get_window_handle = gfx_get_window_handle,
+        .create_gfx = create_gfx,
+        .create_window = create_window,
+        .update_gfx = update_gfx,
     };
+
     ultramodern::events::callbacks_t events_callbacks{};
     ultramodern::error_handling::callbacks_t error_handling_callbacks{};
     ultramodern::threads::callbacks_t threads_callbacks{};
@@ -98,7 +91,6 @@ int main(int argc, char* argv[]) {
     cfg.error_handling_callbacks = error_handling_callbacks;
     cfg.threads_callbacks = threads_callbacks;
 
-    // Start the recomp runtime
     recomp::start(cfg);
     recomp::start_game(u8"pokemonsnap_us");
 

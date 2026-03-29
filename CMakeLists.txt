@@ -31,7 +31,7 @@ if(WIN32)
     set(FREETYPE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/freetype-windows-binaries")
     set(FREETYPE_INCLUDE_DIRS "${FREETYPE_DIR}/include")
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(FREETYPE_LIBRARIES "${FREETYPE_DIR}/release static/win64/freetype.lib")
+        set(FREETYPE_LIBRARIES "${FREETYPE_DIR}/release static/vs2026/x64/freetype.lib")
     else()
         set(FREETYPE_LIBRARIES "${FREETYPE_DIR}/release static/win32/freetype.lib")
     endif()
@@ -51,10 +51,12 @@ target_include_directories(RecompiledFuncs PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
 )
 target_link_libraries(RecompiledFuncs PRIVATE librecomp)
-set_target_properties(RecompiledFuncs PROPERTIES
-    C_STANDARD 11
-    COMPILE_FLAGS "$<$<COMPILE_LANGUAGE:C>:-w>"
-)
+set_target_properties(RecompiledFuncs PROPERTIES C_STANDARD 11)
+if(MSVC)
+    target_compile_options(RecompiledFuncs PRIVATE /w)
+else()
+    target_compile_options(RecompiledFuncs PRIVATE -w)
+endif()
 
 # ============================================================
 # Patches library - DISABLED until patches build infrastructure is set up
@@ -107,7 +109,7 @@ if(BUILD_PLAYING)
         librecomp
         ultramodern
         rt64
-        RmlCore
+        rmlui
         lunasvg
     )
 
