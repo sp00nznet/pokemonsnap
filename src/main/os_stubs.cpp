@@ -8,12 +8,15 @@
  * - Need proper implementation later for full functionality
  */
 
+#include <cstdio>
 #include "recomp.h"
 
 extern "C" {
 
+#define STUB_LOG(name) fprintf(stderr, "[stub] " #name " called\n"); fflush(stderr);
+
 // Controller Pak / Rumble Pak internals
-RECOMP_FUNC void __osContAddressCrc_recomp(uint8_t* rdram, recomp_context* ctx) {}
+RECOMP_FUNC void __osContAddressCrc_recomp(uint8_t* rdram, recomp_context* ctx) { STUB_LOG(__osContAddressCrc) }
 RECOMP_FUNC void __osContRamRead_recomp(uint8_t* rdram, recomp_context* ctx) {}
 RECOMP_FUNC void __osContRamWrite_recomp(uint8_t* rdram, recomp_context* ctx) {}
 

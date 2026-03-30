@@ -4,6 +4,9 @@
 #include <vector>
 #include <array>
 #include <cinttypes>
+#include <fstream>
+#include <thread>
+#include <chrono>
 
 #define SDL_MAIN_HANDLED
 #ifdef _WIN32
@@ -33,6 +36,22 @@
 // From recompiled output
 extern "C" void recomp_entrypoint(uint8_t* rdram, recomp_context* ctx);
 gpr get_entrypoint_address();
+
+// Debug wrapper
+extern "C" void recomp_entrypoint_wrapper(uint8_t* rdram, recomp_context* ctx) {
+    fprintf(stderr, "[snap] Game entrypoint called! rdram=%p ctx=%p\n", rdram, ctx);
+    fflush(stderr);
+    if (rdram == nullptr) {
+        fprintf(stderr, "[snap] FATAL: rdram is NULL!\n");
+        fflush(stderr);
+        return;
+    }
+    fprintf(stderr, "[snap] Calling real entrypoint...\n");
+    fflush(stderr);
+    recomp_entrypoint(rdram, ctx);
+    fprintf(stderr, "[snap] Entrypoint returned.\n");
+    fflush(stderr);
+}
 
 // RSP microcode
 extern RspUcodeFunc aspMain;
@@ -174,16 +193,22 @@ int main(int argc, char** argv) {
         SDL_PauseAudioDevice(audio_device, 0);
     }
 
+    // Set config path to exe directory (resolve to absolute)
+    std::filesystem::path exe_path = std::filesystem::absolute(std::filesystem::path(argv[0])).parent_path();
+    recomp::register_config_path(exe_path);
+    fprintf(stderr, "[snap] Config path: %s\n", exe_path.string().c_str());
+    fflush(stderr);
+
     // Register game
     recomp::GameEntry entry{};
-    entry.rom_hash = 0;
+    entry.rom_hash = 0x73cbbc5c7de9425cULL;
     entry.internal_name = "POKEMON SNAP";
     entry.game_id = u8"pokemonsnap_us";
     entry.mod_game_id = "pokemonsnap";
     entry.save_type = recomp::SaveType::AllowAll;
     entry.is_enabled = true;
     entry.entrypoint_address = get_entrypoint_address();
-    entry.entrypoint = recomp_entrypoint;
+    entry.entrypoint = recomp_entrypoint_wrapper;
 
     recomp::register_game(entry);
 
@@ -218,7 +243,12 @@ int main(int argc, char** argv) {
     };
 
     ultramodern::events::callbacks_t events_callbacks{};
-    ultramodern::error_handling::callbacks_t error_handling_callbacks{};
+    ultramodern::error_handling::callbacks_t error_handling_callbacks{
+        .message_box = [](const char* msg) {
+            fprintf(stderr, "[snap] ERROR: %s\n", msg);
+            fflush(stderr);
+        },
+    };
     ultramodern::threads::callbacks_t threads_callbacks{};
 
     // Start
@@ -233,8 +263,41 @@ int main(int argc, char** argv) {
     cfg.error_handling_callbacks = error_handling_callbacks;
     cfg.threads_callbacks = threads_callbacks;
 
+    // Pre-load the ROM so it's ready when the game starts
+    {
+        auto rom_path = exe_path / "pokemonsnap_us.z64";
+        fprintf(stderr, "[snap] Pre-loading ROM: %s\n", rom_path.string().c_str());
+        fflush(stderr);
+        std::ifstream rom_file(rom_path, std::ios::binary | std::ios::ate);
+        if (rom_file.good()) {
+            size_t rom_size = rom_file.tellg();
+            rom_file.seekg(0);
+            std::vector<uint8_t> rom_data(rom_size);
+            rom_file.read(reinterpret_cast<char*>(rom_data.data()), rom_size);
+            fprintf(stderr, "[snap] ROM loaded: %zu bytes\n", rom_size);
+            fflush(stderr);
+            recomp::set_rom_contents(std::move(rom_data));
+        } else {
+            fprintf(stderr, "[snap] FATAL: Cannot open ROM file!\n");
+            fflush(stderr);
+            return EXIT_FAILURE;
+        }
+    }
+
+    // Start the game on a timer thread (recomp::start blocks in its event loop)
+    std::thread game_starter([]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        fprintf(stderr, "[snap] Auto-starting game...\n");
+        fflush(stderr);
+        recomp::start_game(u8"pokemonsnap_us");
+    });
+    game_starter.detach();
+
+    fprintf(stderr, "[snap] Starting recomp runtime (blocks in event loop)...\n");
+    fflush(stderr);
+
+    // This blocks until the game exits
     recomp::start(cfg);
-    recomp::start_game(u8"pokemonsnap_us");
 
     return EXIT_SUCCESS;
 }
