@@ -1481,56 +1481,6 @@ functions = [
 ]
 
 [[section]]
-name = "beach_assets"
-rom = 0x000A74E0
-vram = 0x8011B050
-size = 0x952A0
-
-functions = [
-    { name = "beach_assets_func_8011B050", vram = 0x8011B050, size = 0x10 },
-]
-
-[[section]]
-name = "cave_assets"
-rom = 0x001F5E70
-vram = 0x8012A0C0
-size = 0x84D10
-
-functions = [
-    { name = "cave_assets_func_8012A0C0", vram = 0x8012A0C0, size = 0x10 },
-]
-
-[[section]]
-name = "river_assets"
-rom = 0x0029A190
-vram = 0x8012A0C0
-size = 0x70E00
-
-functions = [
-    { name = "river_assets_func_8012A0C0", vram = 0x8012A0C0, size = 0x10 },
-]
-
-[[section]]
-name = "valley_assets"
-rom = 0x003F63D0
-vram = 0x800FFF90
-size = 0x86B60
-
-functions = [
-    { name = "valley_assets_func_800FFF90", vram = 0x800FFF90, size = 0x10 },
-]
-
-[[section]]
-name = "rainbow_assets"
-rom = 0x004A8160
-vram = 0x800F5D90
-size = 0x43EA0
-
-functions = [
-    { name = "rainbow_assets_func_800F5D90", vram = 0x800F5D90, size = 0x10 },
-]
-
-[[section]]
 name = "app_level"
 rom = 0x004F0610
 vram = 0x80350200

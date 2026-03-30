@@ -286,7 +286,7 @@ int main(int argc, char** argv) {
 
     // Start the game on a timer thread (recomp::start blocks in its event loop)
     std::thread game_starter([]() {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         fprintf(stderr, "[snap] Auto-starting game...\n");
         fflush(stderr);
         recomp::start_game(u8"pokemonsnap_us");

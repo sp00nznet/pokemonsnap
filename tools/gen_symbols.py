@@ -63,6 +63,19 @@ for seg in data['segments']:
         if seg.get('type') != 'code':
             continue
 
+        # Skip data/asset segments - they contain compiled data (display lists,
+        # vertices, textures) stored as .c files, not executable MIPS code.
+        # The prologue scanner finds false positives in this data.
+        seg_name = seg.get('name', '')
+        DATA_SEGMENT_PATTERNS = ('_assets', '_extra', '_model', '_textures',
+                                  'pikachu1', 'pikachu2', 'zubat1', 'bulbasaur1',
+                                  'magikarp_model', 'zubat_model', 'bulbasaur_model',
+                                  'magikarp_model_hd', 'zubat_model_hd', 'bulbasaur_model_hd',
+                                  'pikachu_model', 'magikarp_textures')
+        is_data_segment = any(pat in seg_name or seg_name == pat for pat in DATA_SEGMENT_PATTERNS)
+        if is_data_segment:
+            continue
+
         # Parse subsegments to identify code vs data ranges
         code_ranges = []  # (rom_start, rom_end) for code-only subsegments
         all_subs = []
