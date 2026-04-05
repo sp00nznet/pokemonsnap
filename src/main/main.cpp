@@ -33,12 +33,15 @@
 #include <Windows.h>
 #endif
 
+static uint8_t* g_rdram_base = nullptr;
+
 // From recompiled output
 extern "C" void recomp_entrypoint(uint8_t* rdram, recomp_context* ctx);
 gpr get_entrypoint_address();
 
 // Debug wrapper
 extern "C" void recomp_entrypoint_wrapper(uint8_t* rdram, recomp_context* ctx) {
+    g_rdram_base = rdram;
     fprintf(stderr, "[snap] Game entrypoint called! rdram=%p ctx=%p\n", rdram, ctx);
     fflush(stderr);
     if (rdram == nullptr) {
@@ -173,11 +176,46 @@ void set_rumble(uint8_t player, bool active) {
     // TODO: Controller rumble
 }
 
+#ifdef _WIN32
+#include <signal.h>
+static void crash_handler(int sig) {
+    fprintf(stderr, "[CRASH] Signal %d received!\n", sig);
+    fflush(stderr);
+    _exit(1);
+}
+
+extern "C" void dump_recent_funcs();
+
+static LONG WINAPI seh_handler(EXCEPTION_POINTERS* ep) {
+    fprintf(stderr, "[CRASH] SEH exception 0x%08lX at address %p\n",
+        ep->ExceptionRecord->ExceptionCode,
+        ep->ExceptionRecord->ExceptionAddress);
+    if (ep->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION &&
+        ep->ExceptionRecord->NumberParameters >= 2) {
+        uint64_t fault_addr = ep->ExceptionRecord->ExceptionInformation[1];
+        fprintf(stderr, "[CRASH] Access violation %s address 0x%llX\n",
+            ep->ExceptionRecord->ExceptionInformation[0] ? "writing" : "reading",
+            (unsigned long long)fault_addr);
+        if (g_rdram_base) {
+            int64_t offset = (int64_t)(fault_addr - (uint64_t)g_rdram_base);
+            fprintf(stderr, "[CRASH] RDRAM base=%p, offset from RDRAM=0x%llX, N64 addr=0x%08X\n",
+                g_rdram_base, (unsigned long long)offset, (uint32_t)(offset + 0x80000000));
+        }
+    }
+    dump_recent_funcs();
+    fflush(stderr);
+    _exit(1);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 int main(int argc, char** argv) {
     (void)argc;
     (void)argv;
 
 #ifdef _WIN32
+    SetUnhandledExceptionFilter(seh_handler);
+    signal(SIGSEGV, crash_handler);
     SDL_setenv("SDL_AUDIODRIVER", "wasapi", true);
 #endif
 
@@ -286,7 +324,7 @@ int main(int argc, char** argv) {
 
     // Start the game on a timer thread (recomp::start blocks in its event loop)
     std::thread game_starter([]() {
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(6000));
         fprintf(stderr, "[snap] Auto-starting game...\n");
         fflush(stderr);
         recomp::start_game(u8"pokemonsnap_us");

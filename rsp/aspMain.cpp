@@ -276,6 +276,7 @@ L_11BC:
     goto do_indirect_jump;
     // nop
 
+L_11DC:
     // andi        $3, $25, 0xFFFF
     r3 = r25 & 0XFFFF;
     // beq         $3, $zero, L_1118
@@ -315,6 +316,7 @@ L_11F8:
     goto L_1118;
     // nop
 
+L_1214:
     // lhu         $3, 0x4($24)
     r3 = RSP_MEM_HU_LOAD(0X4, r24);
     // beq         $3, $zero, L_1118
@@ -360,6 +362,7 @@ L_1248:
     // mtc0        $zero, SP_SEMAPHORE
     goto L_1118;
     // mtc0        $zero, SP_SEMAPHORE
+L_1254:
     // lhu         $3, 0x4($24)
     r3 = RSP_MEM_HU_LOAD(0X4, r24);
     // beq         $3, $zero, L_1118
@@ -443,6 +446,7 @@ L_12BC:
     // mtc0        $zero, SP_SEMAPHORE
     goto L_1118;
     // mtc0        $zero, SP_SEMAPHORE
+L_12D0:
     // sll         $3, $25, 8
     r3 = S32(r25) << 8;
     // srl         $3, $3, 8
@@ -459,8 +463,10 @@ L_12BC:
     goto L_1118;
     // sw          $3, 0x320($4)
     RSP_MEM_W_STORE(0X320, r4, r3);
+L_12E8:
     // addi        $1, $26, 0x5C0
     r1 = RSP_ADD32(r26, 0X5C0);
+L_12EC:
     // srl         $2, $25, 16
     r2 = S32(U32(r25) >> 16);
     // addi        $2, $2, 0x5C0
@@ -2144,6 +2150,7 @@ L_1E10:
     // mtc0        $zero, SP_SEMAPHORE
     goto L_1118;
     // mtc0        $zero, SP_SEMAPHORE
+L_1E24:
     // lqv         $v31[0], 0x0($zero)
     rsp.LQV<0>(rsp.vpu.r[31], 0, 0X0);
     // lhu         $18, 0x4($24)
@@ -2220,7 +2227,8 @@ L_1E94:
 
     return RspExitReason::ImemOverrun;
 do_indirect_jump:
-    switch ((jump_target | 0x1000) & 0X1FFF) { 
+    switch ((jump_target | 0x1000) & 0X1FFF) {
+        case 0x1000: goto L_1118; // SPNOOP - no-op command, continue dispatch
         case 0x18C8: goto L_18C8;
         case 0x14FC: goto L_14FC;
         case 0x1868: goto L_1868;
@@ -2230,14 +2238,21 @@ do_indirect_jump:
         case 0x1240: goto L_1240;
         case 0x1280: goto L_1280;
         case 0x1E10: goto L_1E10;
+        case 0x1E24: goto L_1E24;
         case 0x16F8: goto L_16F8;
         case 0x12BC: goto L_12BC;
+        case 0x11DC: goto L_11DC;
+        case 0x1214: goto L_1214;
+        case 0x12D0: goto L_12D0;
+        case 0x12E8: goto L_12E8;
+        case 0x12EC: goto L_12EC;
         case 0x1790: goto L_1790;
         case 0x1B24: goto L_1B24;
         case 0x1B8C: goto L_1B8C;
         case 0x1118: goto L_1118;
         case 0x1120: goto L_1120;
         case 0x1248: goto L_1248;
+        case 0x1254: goto L_1254;
         case 0x12B0: goto L_12B0;
         case 0x1360: goto L_1360;
         case 0x1470: goto L_1470;
